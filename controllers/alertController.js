@@ -1,50 +1,66 @@
 const Alert = require('../models/Alert');
-const Contact = require('../models/Contact');
+const Client = require('../models/Client');
+const TdyAlert = require('../models/TdyAlert');
+const moment = require("moment-timezone");
+
 
 function getISTDayRange() {
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const now = new Date();
-  const istNow = new Date(now.getTime() + istOffset);
+  const istStart = moment().tz("Asia/Kolkata").startOf("day").toDate();     // Today 00:00 IST
+  const istEnd = moment().tz("Asia/Kolkata").endOf("day").toDate();         // Today 23:59:59.999 IST
 
-  const startOfToday = new Date(istNow);
-  startOfToday.setHours(0, 0, 0, 0);
-  startOfToday.setTime(startOfToday.getTime() - istOffset);
+  // console.log("IST Start:", istStart.toISOString());
+  // console.log("IST End  :", istEnd.toISOString());
 
-  const endOfToday = new Date(istNow);
-  endOfToday.setHours(23, 59, 59, 999);
-  endOfToday.setTime(endOfToday.getTime() - istOffset);
-
-  return { startOfToday, endOfToday };
+  return {
+    startOfToday: istStart,
+    endOfToday: istEnd
+  };
 }
+
+
+
+// exports.getTodayAlerts = async (req, res) => {
+//   try {
+//     const uid = req.user?.uid;
+
+//     const alerts = await TdyAlert.find({
+//       dltSts: 0,
+//       status: 0,
+//       assignedTo: uid
+//     }).populate('clientId');
+
+//     res.json(alerts);
+//   } catch (err) {
+//     res.status(500).send(err.message);
+//   }
+// };
 
 exports.getTodayAlerts = async (req, res) => {
   try {
-    const role = req.user?.role;
-    const uid = req.user?.uId;
+    const uid = req.user?.uid;
+    const now = new Date();
 
-    const { startOfToday, endOfToday } = getISTDayRange();
-
-
-    let query = {
-      alertTime: { $gte: startOfToday, $lte: endOfToday },
-      status: 0,
+    const alerts = await TdyAlert.find({
       dltSts: 0,
-      assignedTo: uid
-    };
+      status: 0,
+      // assignedTo: uid,
+      alertTime: { $lte: now }   // ✅ ONLY DUE ALERTS
+    }).populate('clientId');
 
-    const alerts = await Alert.find(query).populate('contactId');
     res.json(alerts);
   } catch (err) {
     res.status(500).send(err.message);
   }
 };
 
+
+
 exports.editAlert = async (req, res) => {
   try {
     const ip = req.ip;
-    const userId = req.user?.uId || 'system';
+    const userId = req.user?.uid || 'system';
 
-    const updated = await Alert.findByIdAndUpdate(
+    const updated = await TdyAlert.findByIdAndUpdate(
       req.params.id,
       {
         ...req.body,
@@ -66,25 +82,67 @@ exports.snoozeOneDay = async (req, res) => {
     const { id } = req.params;
 
     // first get the record
-    const alertRecord = await Alert.findById(id);
+    const alertRecord = await TdyAlert.findById(id);
     if (!alertRecord) {
       return res.status(404).json({ message: "Alert not found" });
     }
 
     // remove from alrTbl
-    await Alert.findByIdAndDelete(id);
+    await TdyAlert.findByIdAndDelete(id);
 
-    // update contact for next day
-    const contactId = alertRecord.contactId;
+    // update client for next day
+    const clientId = alertRecord.clientId;
     const nextDay = new Date();
     nextDay.setDate(nextDay.getDate() + 1);
 
-    await Contact.findByIdAndUpdate(contactId, {
-      nxtAlrt: nextDay
-    });
+    await Alert.findOneAndUpdate(
+      { clientId: alertRecord.clientId, dltSts: 0 },  // match alert by clientId
+      { $set: { startTime: nextDay } },
+      { new: true }
+    );
 
     res.json({ success: true });
   } catch (err) {
+    res.status(500).send(err.message);
+  }
+};
+
+
+exports.getAllAlertsForUser = async (req, res) => {
+  try {
+    const uid = req.user?.uid;
+
+    // Use the same IST day range function you have defined
+    const { startOfToday, endOfToday } = getISTDayRange();
+
+    const alerts = await TdyAlert.find({
+      dltSts: 0,
+      status: 0,
+      assignedTo: uid,
+      alertTime: { $gte: startOfToday, $lte: endOfToday },
+    }).populate('clientId');
+
+    // Debug logs
+    // console.log('--- Alerts Query Parameters ---');
+    // console.log('User ID:', uid);
+    // console.log('Start of Today (UTC):', startOfToday);
+    // console.log('End of Today (UTC):', endOfToday);
+    // console.log('Current Time (UTC):', new Date());
+    // console.log('Found Alerts Count:', alerts.length);
+
+    alerts.forEach((alert, idx) => {
+      // console.log(`Alert ${idx + 1}:`, {
+      //   id: alert._id,
+      //   subject: alert.subject,
+      //   alertTime: alert.alertTime,
+      //   contact: alert.contactId?.name,
+      //   assignedTo: alert.assignedTo
+      // });
+    });
+
+    res.json(alerts);
+  } catch (err) {
+    console.error('Error fetching alerts:', err);
     res.status(500).send(err.message);
   }
 };

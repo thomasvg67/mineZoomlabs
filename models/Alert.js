@@ -1,8 +1,9 @@
 // models/Alert.js
 const mongoose = require('mongoose');
 const alertSchema = new mongoose.Schema({
-  contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: true },
-  alertTime: { type: Date, required: true },
+  clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
+  startTime: Date,
+  endTime: Date,
   subject: String,
   assignedTo: String,
   status: { type: Number, default: 0 },

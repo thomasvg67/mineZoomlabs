@@ -5,7 +5,8 @@ const cors = require('cors');
 const path = require('path');
 const http = require('http');
 const { initSocket } = require('./middleware/socket');
-const createDailyAlerts = require("./middleware/crnJbAlrt");
+// const createDailyAlerts = require("./middleware/crnJbAlrt");
+const { dailyAlertJob, minuteAlertJob } = require('./middleware/crnJbAlrt');
 
 dotenv.config();
 
@@ -34,9 +35,16 @@ app.use('/uploads/audio', express.static(path.join(__dirname, 'uploads/audio')))
 const MONGO_URI = process.env.MONGO_URI;
 
 // Connect to MongoDB
-mongoose.connect(MONGO_URI)
-  .then(() => {console.log('MongoDB connected');createDailyAlerts();
-})
+// mongoose.connect(MONGO_URI)
+//   .then(() => {console.log('MongoDB connected');createDailyAlerts();
+// })
+//   .catch(err => console.error('MongoDB connection error:', err));
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log('MongoDB connected');
+    dailyAlertJob();
+    minuteAlertJob();
+  })
   .catch(err => console.error('MongoDB connection error:', err));
   
 // Routes
