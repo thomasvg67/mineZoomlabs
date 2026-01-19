@@ -82,6 +82,8 @@ app.use('/api/budgetQtr', require('./routes/budgetQtrRoutes'));
 app.use('/api/plan', require('./routes/planRoutes'));
 app.use('/api/planQtr', require('./routes/planQtrRoutes'));
 app.use('/api/clients', require('./routes/clientRoutes'));
+app.use('/api/tags', require('./routes/tagRoute'));
+
 
 
 // Start server
