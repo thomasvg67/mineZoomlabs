@@ -19,20 +19,21 @@ const Tag = require('../models/Tag');
 
 exports.addTag = async (req, res) => {
   try {
-    let { name } = req.body;
+    let { name, color } = req.body;
 
     if (!name) {
       return res.json({ success: false, message: 'Tag name required' });
     }
 
     name = name.trim().toLowerCase();
+    color = color;
 
     const exists = await Tag.findOne({ name });
     if (exists) {
       return res.json({ success: false, message: 'Tag already exists' });
     }
 
-    const tag = await Tag.create({ name });
+    const tag = await Tag.create({ name, color });
 
     return res.json({ success: true, tag });
 
