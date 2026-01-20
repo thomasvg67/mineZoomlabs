@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const noteController = require('../controllers/prsNoteController');
+const noteController = require('../controllers/PrsNoteController');
 const { verifyToken } = require('../middleware/verifyToken');
 
 router.post('/add', verifyToken, noteController.addNote);
