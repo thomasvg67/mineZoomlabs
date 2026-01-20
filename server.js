@@ -83,7 +83,12 @@ app.use('/api/plan', require('./routes/planRoutes'));
 app.use('/api/planQtr', require('./routes/planQtrRoutes'));
 app.use('/api/clients', require('./routes/clientRoutes'));
 app.use('/api/tags', require('./routes/tagRoute'));
-
+app.use('/api/prstodolist', require('./routes/prstodolistRoutes'));
+app.use('/api/prscontacts', require('./routes/prsContactRoutes'));
+app.use('/api/prscalendar', require('./routes/prsCalendarEventRoutes'));
+app.use('/api/prsmemories', require('./routes/prsMemoriesRoutes'));
+app.use('/api/prsnotes', require('./routes/prsNotesRoutes'));
+app.use('/api/prstags', require('./routes/prsTagRoutes'));
 
 
 // Start server
