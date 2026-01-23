@@ -140,7 +140,7 @@ if (user.sts !== 1) {
     const token = jwt.sign(
       { id: user._id,uId: user.uId, uname: user.uname, role: user.role },
       JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '3h' }
     );
 
     res.json({ token});
