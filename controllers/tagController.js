@@ -59,7 +59,23 @@ exports.getTags = async (req, res) => {
 
 exports.updateTag = async (req, res) => {
   try {
-    const { name, color } = req.body;
+    let { name, color } = req.body;
+
+    if (!name) {
+      return res.json({ success: false, message: 'Tag name required' });
+    }
+
+    name = name.trim().toLowerCase();
+
+    // 🔍 Check if another tag already exists with same name
+    const exists = await Tag.findOne({
+      name,
+      _id: { $ne: req.params.id }
+    });
+
+    if (exists) {
+      return res.json({ success: false, message: 'Tag already exists' });
+    }
 
     const tag = await Tag.findByIdAndUpdate(
       req.params.id,
@@ -71,6 +87,12 @@ exports.updateTag = async (req, res) => {
 
   } catch (err) {
     console.error(err);
+
+    // 🛡 Handle duplicate key safely
+    if (err.code === 11000) {
+      return res.json({ success: false, message: 'Tag already exists' });
+    }
+
     return res.status(500).json({
       success: false,
       message: 'Failed to update tag'
