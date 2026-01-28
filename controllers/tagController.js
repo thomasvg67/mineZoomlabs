@@ -56,3 +56,24 @@ exports.getTags = async (req, res) => {
   const tags = await Tag.find().sort({ name: 1 });
   res.json(tags);
 };
+
+exports.updateTag = async (req, res) => {
+  try {
+    const { name, color } = req.body;
+
+    const tag = await Tag.findByIdAndUpdate(
+      req.params.id,
+      { name, color },
+      { new: true }
+    );
+
+    return res.json({ success: true, tag });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update tag'
+    });
+  }
+};
