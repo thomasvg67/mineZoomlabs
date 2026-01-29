@@ -6,11 +6,17 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js"
   },
+  "nodemonConfig": {
+    "watch": ["server.js", "routes", "controllers", "middleware"],
+    "ext": "js,json",
+    "ignore": ["backups/*", "node_modules/*"]
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "archiver": "^7.0.1",
     "basic-ftp": "^5.1.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
