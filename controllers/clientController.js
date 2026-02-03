@@ -131,7 +131,13 @@ exports.addClient = async (req, res) => {
       }
     }
 
-    res.json(savedClient);
+    const responseClient = {
+      ...savedClient.toObject(),
+      ph: safeDecrypt(savedClient.ph),
+      email: safeDecrypt(savedClient.email)
+    };
+
+    res.json(responseClient);
   } catch (err) {
     console.error(err);
     res.status(500).send(err.message);
@@ -272,7 +278,13 @@ exports.editClient = async (req, res) => {
       }
     }
 
-    res.json(updated);
+    const responseClient = {
+      ...updated.toObject(),
+      ph: safeDecrypt(updated.ph),
+      email: safeDecrypt(updated.email)
+    };
+
+    res.json(responseClient);
   } catch (err) {
     res.status(500).send(err.message);
   }
