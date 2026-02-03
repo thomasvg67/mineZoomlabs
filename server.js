@@ -90,6 +90,7 @@ app.use('/api/prsmemories', require('./routes/prsMemoriesRoutes'));
 app.use('/api/prsnotes', require('./routes/prsNotesRoutes'));
 app.use('/api/prstags', require('./routes/prsTagRoutes'));
 app.use('/api/backup', require('./routes/backupRoutes'));
+app.use('/api/bible', require('./routes/bibleRoutes'));
 
 
 // Start server
