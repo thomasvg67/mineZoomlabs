@@ -11,7 +11,9 @@ const prsContactSchema = new mongoose.Schema({
   hint: { type: String },
   type: { type: String },
   dob: Date,
-    wedDay: Date,
+  wedDay: Date,
+  specialDay: Date,
+  specialMsg: String,
   gmap: String,
   audio: [
     {

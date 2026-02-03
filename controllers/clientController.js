@@ -16,7 +16,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL;
 // Upload audio buffer to cPanel
 async function uploadAudioToCpanel(file, remoteFolder = '/uploads/audios') {
   const client = new ftp.Client();
-  client.ftp.verbose = false;
+  client.ftp.verbose = true;
   try {
     
      const MAX_SIZE = 333 * 1024; 
@@ -31,6 +31,8 @@ async function uploadAudioToCpanel(file, remoteFolder = '/uploads/audios') {
       secure: false
     });
 
+     console.log('FTP Connected successfully');
+     
     await client.ensureDir(remoteFolder);
 
     const ext = path.extname(file.originalname) || ".mp3";
@@ -47,6 +49,34 @@ async function uploadAudioToCpanel(file, remoteFolder = '/uploads/audios') {
 
     // Return public URL
     return `${FRONTEND_URL}/uploads/audios/${encodeURIComponent(uniqueName)}`;
+  } finally {
+    client.close();
+  }
+}
+
+async function uploadImageToCpanel(file, remoteFolder = '/uploads/images') {
+  const client = new ftp.Client();
+  try {
+
+    await client.access({
+      host: process.env.FTP_HOST,
+      user: process.env.FTP_USER,
+      password: process.env.FTP_PASS,
+      secure: false
+    });
+
+    await client.ensureDir(remoteFolder);
+
+    const ext = path.extname(file.originalname);
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`;
+
+    const tempFile = path.join(os.tmpdir(), uniqueName);
+    fs.writeFileSync(tempFile, file.buffer);
+
+    await client.uploadFrom(tempFile, `${remoteFolder}/${uniqueName}`);
+
+    return `${FRONTEND_URL}/uploads/images/${encodeURIComponent(uniqueName)}`;
+
   } finally {
     client.close();
   }
@@ -81,6 +111,10 @@ exports.addClient = async (req, res) => {
       if (req.file) {
       const audioUrl = await uploadAudioToCpanel(req.file);
       clientData.audio = [{ file: audioUrl, uploadedOn: new Date() }];
+    }
+
+    if (req.files?.imageFile?.[0]) {
+      clientData.image = await uploadImageToCpanel(req.files.imageFile[0]);
     }
 
     const client = new Client({
@@ -207,6 +241,9 @@ exports.getAllClients = async (req, res) => {
 
 exports.editClient = async (req, res) => {
   try {
+     console.log('Edit Client - Request Body:', req.body);
+    console.log('Edit Client - Files:', req.files);
+    console.log('Edit Client - Image File:', req.files?.imageFile?.[0]);
     const ip = req.ip;
     const userId = req.user?.uid || 'system';
     const { fdback, startTime, endTime, subject, ...clientData } = req.body;
@@ -225,21 +262,27 @@ exports.editClient = async (req, res) => {
       updateData.assignedTo = clientData.assignedTo;
     }
 
-    if (fdback) {
-      updateData.$push = {
-        fdback: { content: fdback, crtdOn: new Date(), crtdBy: userId, crtdIp: ip }
-      };
+    const pushData = {};
+
+    if (fdback) pushData.fdback = { content: fdback, crtdOn: new Date(), crtdBy: userId, crtdIp: ip };
+    if (req.files?.audioFile?.[0]) {
+      const audioUrl = await uploadAudioToCpanel(req.files.audioFile[0]);
+      pushData.audio = { file: audioUrl, uploadedOn: new Date() };
     }
 
-    if (req.file) {
-      const audioUrl = await uploadAudioToCpanel(req.file);
-      updateData.$push = {
-        ...(updateData.$push || {}),
-        audio: { file: audioUrl, uploadedOn: new Date() }
-      };
+    if (req.files?.imageFile?.[0]) {
+      console.log('Uploading new image file:', req.files.imageFile[0].originalname);
+      updateData.image = await uploadImageToCpanel(req.files.imageFile[0]);
+    } else if (req.body.image) {
+      console.log('Keeping existing image from body:', req.body.image);
+      updateData.image = req.body.image;
     }
 
-    const updated = await Client.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const updated = await Client.findByIdAndUpdate(
+      req.params.id,
+      { ...updateData, ...(Object.keys(pushData).length ? { $push: pushData } : {}) },
+      { new: true }
+    );
 
     // Update alerts if new startTime provided
     if (startTime) {
@@ -286,6 +329,7 @@ exports.editClient = async (req, res) => {
 
     res.json(responseClient);
   } catch (err) {
+    console.error('Edit Client Error:', err);
     res.status(500).send(err.message);
   }
 };
