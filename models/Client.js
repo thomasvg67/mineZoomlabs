@@ -18,11 +18,16 @@ const clientSchema = new mongoose.Schema({
   src: String,
   gmap: String,
   type: String,
-   dob: Date,
+  dob: Date,
   weddingDay: Date,
   specialDay: Date,
   specialMsg: String,
-  image: String,
+  images: [
+    {
+      file: String,
+      uploadedOn: { type: Date, default: Date.now },
+    }
+  ],
   audio: [
     {
       file: String,

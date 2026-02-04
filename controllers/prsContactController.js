@@ -71,9 +71,27 @@ exports.getAllContacts = async (req, res) => {
 
     const search = req.query.search || "";
     const typeFilter = req.query.type || "";
+    const hasDOB = req.query.hasDOB;
+    const hasWedDay = req.query.hasWedDay;
+    const hasSpecial = req.query.hasSpecial;
 
     if (typeFilter.trim() !== "") {
       query.type = typeFilter;
+    }
+
+    // DOB filter if requested
+    if (hasDOB === 'true') {
+      query.dob = { $ne: null, $exists: true };
+    }
+
+    // Wedding Day filter if requested
+     if (hasWedDay === 'true') {
+      query.wedDay = { $ne: null, $exists: true };
+    }
+
+     // Wedding Day filter if requested
+     if (hasSpecial === 'true') {
+      query.specialDay = { $ne: null, $exists: true };
     }
 
     if (search.trim() !== "") {

@@ -82,6 +82,32 @@ async function uploadImageToCpanel(file, remoteFolder = '/uploads/images') {
   }
 }
 
+async function uploadImageToLocal(file, subFolder = 'client/images') {
+  if (!file || !file.buffer) return null;
+
+  const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+  if (file.size > MAX_SIZE) {
+    throw new Error('Image size exceeds 2MB limit');
+  }
+
+  const baseUploadDir = path.join(__dirname, '..', 'uploads');
+  const uploadDir = path.join(baseUploadDir, subFolder);
+
+  // ✅ Create ONLY if missing
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  const ext = path.extname(file.originalname) || '.png';
+  const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+  const filePath = path.join(uploadDir, uniqueName);
+
+  fs.writeFileSync(filePath, file.buffer);
+
+  return `/uploads/${subFolder}/${uniqueName}`;
+}
+
+
 function getISTDayRange() {
   const istStart = moment().tz("Asia/Kolkata").startOf("day").toDate(); // Today 00:00 IST
   const istEnd = moment().tz("Asia/Kolkata").endOf("day").toDate();     // Today 23:59:59.999 IST
@@ -113,8 +139,17 @@ exports.addClient = async (req, res) => {
       clientData.audio = [{ file: audioUrl, uploadedOn: new Date() }];
     }
 
-    if (req.files?.imageFile?.[0]) {
-      clientData.image = await uploadImageToCpanel(req.files.imageFile[0]);
+    clientData.images = [];
+    if (req.files?.imageFile) {
+      // Handle single image file
+      const imageUrl = await uploadImageToCpanel(req.files.imageFile[0]);
+      // const imageUrl = await uploadImageToLocal(req.files.imageFile[0]);
+      clientData.images.push({
+        file: imageUrl,
+        uploadedOn: new Date(),
+        uploadedBy: userId,
+        uploadIp: ip
+      });
     }
 
     const client = new Client({
@@ -133,7 +168,7 @@ exports.addClient = async (req, res) => {
 
     const savedClient = await client.save();
 
-    // ✅ Always create alert record
+    // Always create alert record
     if (startTime) {
       const alertDoc = {
         clientId: savedClient._id,
@@ -183,10 +218,28 @@ exports.getAllClients = async (req, res) => {
     const role = req.user?.role;
     const uid = req.user?.uid;
     const category = req.query.category;
+    const hasDOB = req.query.hasDOB;
+    const hasWedding = req.query.hasWedding;
+    const hasSpecial = req.query.hasSpecial;
 
     let query = { dltSts: 0 };
     if (role !== 'adm') query.assignedTo = uid;
     if (category && category !== 'All') query.category = category;
+
+    // DOB filter if requested
+    if (hasDOB === 'true') {
+      query.dob = { $ne: null, $exists: true };
+    }
+
+    // Wedding filter if requested
+    if (hasWedding === 'true') {
+      query.weddingDay = { $ne: null, $exists: true };
+    }
+
+    // Special filter if requested
+    if (hasSpecial === 'true') {
+      query.specialDay = { $ne: null, $exists: true };
+    }
 
     const search = req.query.search || "";
     if (search.trim() !== "") {
@@ -218,6 +271,7 @@ exports.getAllClients = async (req, res) => {
           ...client.toObject(),
           ph: safeDecrypt(client.ph),
           email: safeDecrypt(client.email),
+          images: client.images || [],
           startTime: alert ? alert.startTime : null,
           endTime: alert ? alert.endTime : null,
           subject: alert ? alert.subject : null,
@@ -241,12 +295,22 @@ exports.getAllClients = async (req, res) => {
 
 exports.editClient = async (req, res) => {
   try {
-     console.log('Edit Client - Request Body:', req.body);
-    console.log('Edit Client - Files:', req.files);
-    console.log('Edit Client - Image File:', req.files?.imageFile?.[0]);
+    console.log('=== Edit Client Request ===');
+    console.log('Request Body:', req.body);
+    console.log('Files:', req.files);
+    console.log('Image File exists:', !!req.files?.imageFile?.[0]);
+
+    if (req.files?.imageFile?.[0]) {
+      console.log('Image File details:', {
+        originalname: req.files.imageFile[0].originalname,
+        size: req.files.imageFile[0].size,
+        mimetype: req.files.imageFile[0].mimetype
+      });
+    }
     const ip = req.ip;
     const userId = req.user?.uid || 'system';
-    const { fdback, startTime, endTime, subject, ...clientData } = req.body;
+    const { fdback, startTime, endTime, subject,existingImages, ...clientData } = req.body;
+    
 
     if (clientData.email) clientData.email = encrypt(clientData.email);
     if (clientData.ph) clientData.ph = encrypt(clientData.ph);
@@ -270,13 +334,41 @@ exports.editClient = async (req, res) => {
       pushData.audio = { file: audioUrl, uploadedOn: new Date() };
     }
 
-    if (req.files?.imageFile?.[0]) {
-      console.log('Uploading new image file:', req.files.imageFile[0].originalname);
-      updateData.image = await uploadImageToCpanel(req.files.imageFile[0]);
-    } else if (req.body.image) {
-      console.log('Keeping existing image from body:', req.body.image);
-      updateData.image = req.body.image;
+
+    // If existingImages is provided (from frontend), parse it and update
+    let existingImagesArray = [];
+    if (existingImages) {
+      try {
+        existingImagesArray = JSON.parse(existingImages);
+      } catch (err) {
+        console.error('Error parsing existingImages:', err);
+      }
     }
+
+    // Get the current client to preserve existing images
+    const currentClient = await Client.findById(req.params.id);
+    let currentImages = currentClient.images || [];
+
+    // If we have existing images from frontend, use those
+    if (existingImagesArray.length > 0) {
+      currentImages = existingImagesArray;
+      console.log('Parsed existing images:', currentImages.length);
+    }
+
+    // Add new image if uploaded
+    if (req.files?.imageFile?.[0]) {
+      const imageUrl = await uploadImageToCpanel(req.files.imageFile[0]);
+      // const imageUrl = await uploadImageToLocal(req.files.imageFile[0]);
+      currentImages.push({
+        file: imageUrl,
+        uploadedOn: new Date(),
+        uploadedBy: userId,
+        uploadIp: ip
+      });
+    }
+
+    // Update the images array
+    updateData.images = currentImages;
 
     const updated = await Client.findByIdAndUpdate(
       req.params.id,
