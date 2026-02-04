@@ -12,10 +12,11 @@ const path = require('path');
 const os = require('os');
 
 const FRONTEND_URL = process.env.FRONTEND_URL;
+const FILES_BASE_URL = process.env.FILES_BASE_URL;
 
 // Upload audio buffer to cPanel
-async function uploadAudioToCpanel(file, remoteFolder = '/uploads/audios') {
-  const client = new ftp.Client();
+async function uploadAudioToCpanel(file, remoteFolder = 'mine/uplds/audios') {
+  const client = new ftp.Client(30000);
   client.ftp.verbose = true;
   try {
     
@@ -45,16 +46,16 @@ async function uploadAudioToCpanel(file, remoteFolder = '/uploads/audios') {
     fs.writeFileSync(tempFilePath, file.buffer);
 
     // Upload
-    await client.uploadFrom(tempFilePath, `${remoteFolder}/${uniqueName}`);
+    await client.uploadFrom(tempFilePath, uniqueName);
 
     // Return public URL
-    return `${FRONTEND_URL}/uploads/audios/${encodeURIComponent(uniqueName)}`;
+    return `${FILES_BASE_URL}/uplds/audios/${encodeURIComponent(uniqueName)}`;
   } finally {
     client.close();
   }
 }
 
-async function uploadImageToCpanel(file, remoteFolder = '/uploads/images') {
+async function uploadImageToCpanel(file, remoteFolder = '/mine/uplds/imgs') {
   const client = new ftp.Client();
   try {
 
@@ -75,37 +76,37 @@ async function uploadImageToCpanel(file, remoteFolder = '/uploads/images') {
 
     await client.uploadFrom(tempFile, `${remoteFolder}/${uniqueName}`);
 
-    return `${FRONTEND_URL}/uploads/images/${encodeURIComponent(uniqueName)}`;
+    return `${FILES_BASE_URL}/uplds/imgs/${encodeURIComponent(uniqueName)}`;
 
   } finally {
     client.close();
   }
 }
 
-async function uploadImageToLocal(file, subFolder = 'client/images') {
-  if (!file || !file.buffer) return null;
+// async function uploadImageToLocal(file, subFolder = 'client/images') {
+//   if (!file || !file.buffer) return null;
 
-  const MAX_SIZE = 2 * 1024 * 1024; // 2MB
-  if (file.size > MAX_SIZE) {
-    throw new Error('Image size exceeds 2MB limit');
-  }
+//   const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+//   if (file.size > MAX_SIZE) {
+//     throw new Error('Image size exceeds 2MB limit');
+//   }
 
-  const baseUploadDir = path.join(__dirname, '..', 'uploads');
-  const uploadDir = path.join(baseUploadDir, subFolder);
+//   const baseUploadDir = path.join(__dirname, '..', 'uploads');
+//   const uploadDir = path.join(baseUploadDir, subFolder);
 
-  // ✅ Create ONLY if missing
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
+//   // ✅ Create ONLY if missing
+//   if (!fs.existsSync(uploadDir)) {
+//     fs.mkdirSync(uploadDir, { recursive: true });
+//   }
 
-  const ext = path.extname(file.originalname) || '.png';
-  const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-  const filePath = path.join(uploadDir, uniqueName);
+//   const ext = path.extname(file.originalname) || '.png';
+//   const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+//   const filePath = path.join(uploadDir, uniqueName);
 
-  fs.writeFileSync(filePath, file.buffer);
+//   fs.writeFileSync(filePath, file.buffer);
 
-  return `/uploads/${subFolder}/${uniqueName}`;
-}
+//   return `/uploads/${subFolder}/${uniqueName}`;
+// }
 
 
 function getISTDayRange() {
