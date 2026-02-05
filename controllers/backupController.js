@@ -6,8 +6,8 @@ const ftp = require('basic-ftp');
 const os = require('os');
 
 async function uploadBackupToCpanel(localZipPath, fileName, remoteFolder = '/mine/uplds/bckup') {
-  const client = new ftp.Client(30000);
-  client.ftp.verbose = false;
+  const client = new ftp.Client(100000);
+  client.ftp.verbose = true;
 
   try {
     await client.access({
@@ -46,7 +46,7 @@ exports.downloadBackup = async (req, res) => {
 
     // 1️⃣ Run mongodump
     execSync(`mongodump --uri="${mongoURI}" --out="${dumpDir}"`, {
-      stdio: 'ignore'
+      stdio: 'inherit'
     });
 
     // 2️⃣ Create ZIP
