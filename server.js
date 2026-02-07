@@ -92,6 +92,7 @@ app.use('/api/prstags', require('./routes/prsTagRoutes'));
 app.use('/api/backup', require('./routes/backupRoutes'));
 app.use('/api/bible', require('./routes/bibleRoutes'));
 app.use('/api/home', require('./routes/homeRoutes'));
+app.use('/api/pandl', require('./routes/pandlRoutes'));
 
 
 // Start server
