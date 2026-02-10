@@ -3,7 +3,7 @@ const Note = require('../models/Note');
 // Create a new note
 exports.addNote = async (req, res) => {
   try {
-    const { title, desc } = req.body;
+    const { title, desc, tag } = req.body;
     const ip = req.ip;
     const userId = req.user?.uId || 'system';
 
@@ -11,7 +11,7 @@ exports.addNote = async (req, res) => {
       title,
       desc,
       isFav: false,
-      tag: "",
+      tag,
       crtdOn: new Date(),
       crtdBy: userId,
       crtdIp: ip,

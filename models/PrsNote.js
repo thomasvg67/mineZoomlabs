@@ -3,9 +3,9 @@ const { Counter } = require('./Counter');
 
 const PrsNoteSchema = new mongoose.Schema({
   nId: { type: String, unique: true }, // 4-digit string like "0001"
-  title: { type: String, required: true, maxLength: 25 },
-  desc: { type: String, required: true, maxLength: 100 },
-  tag: { type: String, default: "" },
+  title: { type: String, required: true },
+  desc: { type: String, required: true },
+  tag: { type: String},
   isFav: { type: Boolean, default: false },
   crtdOn: { type: Date, default: Date.now },
   crtdBy: { type: String },

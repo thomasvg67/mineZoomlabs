@@ -17,8 +17,8 @@ const mutualFundSchema = new mongoose.Schema({
 
   actionType: {
     type: String,
-    enum: ['follow', 'wishlist', 'snoozed', 'other'],
-    default: 'follow'
+    enum: ['','follow', 'wishlist', 'snoozed', 'other'],
+    default: ''
   },
 
   followUp: String,
