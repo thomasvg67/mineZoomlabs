@@ -73,6 +73,7 @@ app.use('/api/shares', require('./routes/shareRoutes'));
 app.use('/api/mutualFund', require('./routes/mutualFundRoutes'));
 app.use('/api/memories', require('./routes/memoriesRoutes'));
 app.use('/api/timeline', require('./routes/timelineRoutes'));
+app.use('/api/timelinetags', require('./routes/timelineTagRoutes'));
 app.use('/api/budgetYearly', require('./routes/budgetYearlyRoutes'));
 app.use('/api/budgetHYearly', require('./routes/budgetHYearlyRoutes'));
 app.use('/api/fund', require('./routes/fundRoutes'));
@@ -94,6 +95,7 @@ app.use('/api/bible', require('./routes/bibleRoutes'));
 app.use('/api/home', require('./routes/homeRoutes'));
 app.use('/api/pandl', require('./routes/pandlRoutes'));
 app.use('/api/careers', require('./routes/careerRoutes'));
+app.use('/api/programming', require('./routes/programmingRoutes'));
 
 // Start server
 // app.listen(PORT, () => {

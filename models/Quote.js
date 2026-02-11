@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 
 const quoteSchema = new mongoose.Schema({
   subCategory: { type: String, required: true },
-  writtenBy: { type: String, required: true },
+  writtenBy: { type: String },
   source: String,
-  quote: String,
+  quote: { type: String, required: true },
   sts: { type: Boolean, default: true },
 
   // audit fields
