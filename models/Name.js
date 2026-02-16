@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const nameSchema = new mongoose.Schema({
+  cat: {type: String, default: "Names"},
   subCategory: { type: String, required: true },
   name: { type: String, required: true },
   source: { type: String },

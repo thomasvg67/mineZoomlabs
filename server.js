@@ -61,6 +61,7 @@ app.use('/api/medical-stats', require('./routes/medicalStatRoutes'));
 app.use('/api/quotes', require('./routes/quoteRoutes'));
 app.use('/api/dictionary', require('./routes/dictionaryRoutes'));
 app.use('/api/medicines', require('./routes/medicineRoutes'));
+app.use('/api/tips', require('./routes/tipRoutes'));
 app.use('/api/diary', require('./routes/diaryRoutes'));
 app.use('/api/stories', require('./routes/storyRoutes'));
 app.use('/api/business', require('./routes/businessIdeaRoutes'));

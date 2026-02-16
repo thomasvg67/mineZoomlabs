@@ -3,6 +3,7 @@ const { Counter } = require('./Counter');
 
 const NoteSchema = new mongoose.Schema({
   nId: { type: String, unique: true }, // 4-digit string like "0001"
+  cat: {type: String, default: "notes"},
   title: { type: String, required: true },
   desc: { type: String, required: true },
   tag: { type: String },
@@ -17,7 +18,7 @@ const NoteSchema = new mongoose.Schema({
   dltBy: { type: String },
   dltIp: { type: String },
   dltSts: { type: String, default: 0 },
-  nSts: { type: String, default: 0 },
+  nSts: { type: String, default: 3 },
 });
 
 // 👇 This hook generates the 4-digit noteId

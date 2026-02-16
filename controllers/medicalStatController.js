@@ -10,11 +10,11 @@ exports.getAllStats = async (req, res) => {
 
     const query = { dltSts: false, crtdBy: userId };
 
-    if (subCategory) query.subCategory = subCategory;
+    if (subCategory) query.subCat = subCategory;
     if (search && search.length >= 3) {
       query.$or = [
-        { hospital: { $regex: search, $options: 'i' } },
-        { consultedBy: { $regex: search, $options: 'i' } }
+        { hsptl: { $regex: search, $options: 'i' } },
+        { cnsultdBy: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -115,7 +115,7 @@ exports.lookupHospital = async (req, res) => {
 
     // Find matching hospital names (case-insensitive, no dltSts)
     const matches = await MedicalStat.find({
-      hospital: { $regex: query, $options: 'i' },
+      hsptl: { $regex: query, $options: 'i' },
       dltSts: false
     })
       .sort({ crtdOn: -1 }) // newest first
@@ -126,12 +126,12 @@ exports.lookupHospital = async (req, res) => {
     const suggestions = [];
 
     for (let record of matches) {
-      if (!uniqueMap[record.hospital.toLowerCase()]) {
-        uniqueMap[record.hospital.toLowerCase()] = true;
+      if (!uniqueMap[record.hsptl.toLowerCase()]) {
+        uniqueMap[record.hsptl.toLowerCase()] = true;
         suggestions.push({
-          hospital: record.hospital,
-          phone: record.phone || '',
-          consultedBy: record.consultedBy || ''
+          hospital: record.hsptl,
+          phone: record.ph || '',
+          consultedBy: record.cnsultdBy || ''
         });
       }
     }
@@ -150,16 +150,16 @@ exports.getChartData = async (req, res) => {
     const stats = await MedicalStat.find({
       crtdBy: userId,
       dltSts: false,
-      checkedOn: { $exists: true }
-    }).sort({ checkedOn: 1 });
+      chkdOn: { $exists: true }
+    }).sort({ chkdOn: 1 });
 
     // Group by date
     const grouped = {};
 
     stats.forEach(stat => {
-      const date = new Date(stat.checkedOn).toISOString().split('T')[0]; // YYYY-MM-DD
-      const category = stat.subCategory.toLowerCase(); // sugar, pressure, weight
-      const value = parseFloat(stat.measures);
+      const date = new Date(stat.chkdOn).toISOString().split('T')[0]; // YYYY-MM-DD
+      const category = stat.subCat.toLowerCase(); // sugar, pressure, weight
+      const value = parseFloat(stat.mesrs);
 
       if (!grouped[date]) {
         grouped[date] = { date };

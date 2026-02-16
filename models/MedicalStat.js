@@ -1,13 +1,18 @@
 const mongoose = require('mongoose');
 
 const medicalStatSchema = new mongoose.Schema({
-  subCategory: { type: String, required: true },
-  hospital:    { type: String, required: true },
-  phone:       { type: String },
-  consultedBy: { type: String },
-  measures:    { type: String, required: true },
-  checkedOn:   { type: Date },
-  description: { type: String },
+  cat: { type: String, default: "Medical" },
+  subCat: { type: String, required: true },
+  hsptl: { type: String, required: true },
+  ph: { type: String },
+  cnsultdBy: { type: String },
+  mesrs: { type: String, required: true },
+  triglyc: { type: Number },
+  ldl: { type: Number },
+  hdl: { type: Number },
+  vldl: { type: Number },
+  chkdOn: { type: Date },
+  dscrptn: { type: String },
 
   // Creation Info
   crtdOn: { type: Date, default: Date.now },

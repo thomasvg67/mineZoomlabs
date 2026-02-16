@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const dictionarySchema = new mongoose.Schema({
+  cat: {type: String, default: "Vocabulary"},
   language: { type: String, required: true },
   words: { type: String, required: true },
   source: { type: String },

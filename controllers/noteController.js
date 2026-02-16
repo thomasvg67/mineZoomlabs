@@ -15,7 +15,7 @@ exports.addNote = async (req, res) => {
       crtdOn: new Date(),
       crtdBy: userId,
       crtdIp: ip,
-      nSts: 0,
+      nSts: 3,
       dltSts: 0,
     });
 
@@ -26,10 +26,15 @@ exports.addNote = async (req, res) => {
       note: newNote,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to save note',
-    });
+    // res.status(500).json({
+    //   success: false,
+    //   message: 'Failed to save note',
+    // });
+     console.error("ADD NOTE ERROR:", error);   // 👈 ADD THIS
+  res.status(500).json({
+    success: false,
+    message: error.message,
+  });
   }
 };
 

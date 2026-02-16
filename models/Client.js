@@ -3,6 +3,7 @@
 const mongoose = require('mongoose');
 
 const clientSchema = new mongoose.Schema({
+  cat: {type: String, default: "Clients"},
   name: { type: String, required: true },
   email: String,
   occup: String,

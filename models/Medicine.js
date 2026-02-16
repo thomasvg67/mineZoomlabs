@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const medicineSchema = new mongoose.Schema({
+  cat: { type: String, default: "Medicine" },
   medicine: { type: String, required: true },
   name: { type: String, required: true },
   description: { type: String },
