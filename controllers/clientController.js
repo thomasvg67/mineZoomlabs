@@ -469,30 +469,50 @@ exports.getSuggestions = async (req, res) => {
     }
 
     if (ph && ph.length >= 5) {
-      suggestions.phones = (await Client.find({
-        ph: { $regex: `^${ph}`, $options: 'i' }, dltSts: 0
-      }).limit(5).select('name ph loc')).map(c => ({
-        ...c.toObject(),
-        ph: safeDecrypt(c.ph) || '',
-      }));
+      // Get all clients and decrypt their phone numbers for comparison
+      const allClients = await Client.find({ dltSts: 0 }).select('name ph loc');
 
+      // Decrypt all phones first
+      const clientsWithDecryptedPhones = allClients.map(client => ({
+        ...client.toObject(),
+        ph: safeDecrypt(client.ph) || ''
+      }));
+      
+      const matchedClients = clientsWithDecryptedPhones
+        .filter(client => client.ph.startsWith(ph))
+        .slice(0, 5);
+      
+      suggestions.phones = matchedClients;
+
+      // Check for exact match with full 10-digit number
       if (ph.length === 10) {
-        const exact = await Client.findOne({ ph, dltSts: 0 });
-        if (exact) suggestions.existingPhone = true;
+        const exactMatch = clientsWithDecryptedPhones.find(client => client.ph === ph);
+        suggestions.existingPhone = !!exactMatch;
+        // console.log('Exact match found:', exactMatch);
       }
     }
 
-    if (email && email.length >= 5) {
-      suggestions.emails = (await Client.find({
-        email: { $regex: `^${email}`, $options: 'i' }, dltSts: 0
-      }).limit(5).select('name email loc')).map(c => ({
-        ...c.toObject(),
-        email: safeDecrypt(c.email) || ''
+     if (email && email.length >= 5) {
+      // Get all clients and decrypt emails
+      const allClients = await Client.find({ dltSts: 0 }).select('name email loc');
+      
+      const clientsWithDecryptedEmails = allClients.map(client => ({
+        ...client.toObject(),
+        email: safeDecrypt(client.email) || ''
       }));
+      
+      // Filter for suggestions (starts with, case insensitive)
+      const matchedClients = clientsWithDecryptedEmails
+        .filter(client => client.email.toLowerCase().startsWith(email.toLowerCase()))
+        .slice(0, 5);
+      
+      suggestions.emails = matchedClients;
 
-      if (/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
-        const exact = await Client.findOne({ email, dltSts: 0 });
-        if (exact) suggestions.existingEmail = true;
+      // Check for exact match with valid email format
+      if (email.includes('@') && email.length >= 5) {
+        const exactMatch = clientsWithDecryptedEmails.find(client => client.email === email);
+        suggestions.existingEmail = !!exactMatch;
+        console.log('Email exact match found:', exactMatch); // Debug log
       }
     }
 
