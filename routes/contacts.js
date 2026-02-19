@@ -8,6 +8,7 @@ router.post('/add', verifyToken,upload.single('audioFile'), contactController.ad
 router.get('/',verifyToken, contactController.getAllContacts);
 router.put('/edit/:id', verifyToken,upload.single('audioFile'), contactController.editContact);
 router.delete('/delete/:id', verifyToken, contactController.deleteContact);
+router.get('/check-phone', verifyToken, contactController.checkPhoneExists);
 router.get('/:id', verifyToken, contactController.getContactById);
 
 

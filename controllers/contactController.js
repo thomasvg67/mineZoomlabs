@@ -230,3 +230,29 @@ exports.getContactById = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+exports.checkPhoneExists = async (req, res) => {
+  try {
+    const { ph, excludeId } = req.query;
+
+    if (!ph) {
+      return res.json({ exists: false });
+    }
+
+    const query = {
+      ph: ph,
+      dltSts: 0
+    };
+
+    // While editing, exclude current record
+    if (excludeId) {
+      query._id = { $ne: excludeId };
+    }
+
+    const contact = await Contact.findOne(query);
+
+    res.json({ exists: !!contact });
+  } catch (err) {
+    res.status(500).json({ exists: false });
+  }
+};

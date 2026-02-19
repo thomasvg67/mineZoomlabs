@@ -97,6 +97,9 @@ app.use('/api/home', require('./routes/homeRoutes'));
 app.use('/api/pandl', require('./routes/pandlRoutes'));
 app.use('/api/careers', require('./routes/careerRoutes'));
 app.use('/api/programming', require('./routes/programmingRoutes'));
+app.use('/api/countries', require('./routes/countryRoutes'));
+app.use('/api/states', require('./routes/stateRoutes'));
+app.use('/api/cities', require('./routes/cityRoutes'));
 
 // Start server
 // app.listen(PORT, () => {

@@ -132,8 +132,16 @@ exports.addClient = async (req, res) => {
     const userId = req.user?.uid || 'system';
     const { fdback, startTime, endTime, subject, ...clientData } = req.body;
 
+    clientData.cntry = clientData.cntry ? Number(clientData.cntry) : null;
+clientData.state = clientData.state ? Number(clientData.state) : null;
+clientData.city  = clientData.city  ? Number(clientData.city)  : null;
+
+
     if (clientData.email) clientData.email = encrypt(clientData.email);
     if (clientData.ph) clientData.ph = encrypt(clientData.ph);
+    if (clientData.cntry) clientData.cntry = Number(clientData.cntry);
+if (clientData.state) clientData.state = Number(clientData.state);
+if (clientData.city) clientData.city = Number(clientData.city);
 
       if (req.file) {
       const audioUrl = await uploadAudioToCpanel(req.file);
