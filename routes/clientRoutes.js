@@ -17,6 +17,7 @@ router.put('/edit/:id', verifyToken,upload.fields([
     { name: 'imageFile', maxCount: 1 }]), clientController.editClient);
 router.delete('/delete/:id', verifyToken, clientController.deleteClient);
 router.get('/suggest', clientController.getSuggestions);
+router.get('/buss-types/suggest', verifyToken, clientController.getBussTypeSuggestions);
 router.post('/bulk-delete', verifyToken, clientController.bulkDeleteClients);
 router.put('/feedback/:id', verifyToken, upload.single('audioFile'), clientController.updateFeedback);
 

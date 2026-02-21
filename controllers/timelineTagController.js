@@ -1,21 +1,5 @@
 const Tag = require('../models/TimelineTag');
-
-// exports.addTag = async (req, res) => {
-//   try {
-//     const { name } = req.body;
-
-//     const exists = await Tag.findOne({ name: name.toLowerCase() });
-//     if (exists) {
-//       return res.json({ success: false, message: 'Tag already exists' });
-//     }
-
-//     const tag = await Tag.create({ name: name.toLowerCase() });
-
-//     res.json({ success: true, tag });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: 'Failed to add tag' });
-//   }
-// };
+const Timeline = require('../models/Timeline');
 
 exports.addTag = async (req, res) => {
   try {
@@ -53,7 +37,7 @@ exports.addTag = async (req, res) => {
 
 
 exports.getTags = async (req, res) => {
-  const tags = await Tag.find().sort({ name: 1 });
+  const tags = await Tag.find({ dltSts: 0, sts: 1 }).sort({ name: 1 });
   res.json(tags);
 };
 
@@ -96,6 +80,55 @@ exports.updateTag = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to update tag'
+    });
+  }
+};
+
+exports.deleteTag = async (req, res) => {
+  try {
+    const tagId = req.params.id;
+    const userId = req.user?.uId || 'system';
+
+    const tag = await Tag.findById(tagId);
+    if (!tag) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tag not found'
+      });
+    }
+
+    // 🔍 Count notes using this tag (not deleted notes)
+    const noteCount = await Timeline.countDocuments({
+      tag: tag.name,
+      dltSts: 0
+    });
+
+    if (noteCount > 0) {
+      return res.json({
+        success: false,
+        noteCount,
+        message: `This tag contains ${noteCount} notes, so can't delete`
+      });
+    }
+
+    // ✅ Soft delete
+    await Tag.findByIdAndUpdate(tagId, {
+      sts: 0,
+      dltSts: 1,
+      dltOn: new Date(),
+      dltBy: userId
+    });
+
+    return res.json({
+      success: true,
+      message: 'Tag deleted successfully'
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete tag'
     });
   }
 };

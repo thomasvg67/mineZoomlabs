@@ -100,6 +100,7 @@ app.use('/api/programming', require('./routes/programmingRoutes'));
 app.use('/api/countries', require('./routes/countryRoutes'));
 app.use('/api/states', require('./routes/stateRoutes'));
 app.use('/api/cities', require('./routes/cityRoutes'));
+app.use('/api/buss-types', require('./routes/bussTypRoutes'));
 
 // Start server
 // app.listen(PORT, () => {

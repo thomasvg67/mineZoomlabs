@@ -4,6 +4,7 @@ const Alert = require('../models/Alert');
 const Client = require('../models/Client');
 const TdyAlert = require('../models/TdyAlert');
 const FdBack = require('../models/FdBack');
+const BussTyp = require('../models/BussTyp');
 const { encrypt, decrypt } = require('../routes/encrypt');
 const moment = require("moment-timezone");
 const ftp = require('basic-ftp');
@@ -492,15 +493,18 @@ exports.getSuggestions = async (req, res) => {
       
       suggestions.phones = matchedClients;
 
-      // Check for exact match with full 10-digit number
-      if (ph.length === 10) {
-        const exactMatch = clientsWithDecryptedPhones.find(client => client.ph === ph);
+      // Check for exact match with phone number (after removing country code and special chars)
+      const cleanPhone = ph.replace(/\D/g, '');
+      if (cleanPhone.length >= 8) {
+        const exactMatch = clientsWithDecryptedPhones.find(client => {
+          const clientCleanPhone = client.ph.replace(/\D/g, '');
+          return clientCleanPhone === cleanPhone;
+        });
         suggestions.existingPhone = !!exactMatch;
-        // console.log('Exact match found:', exactMatch);
       }
     }
 
-     if (email && email.length >= 5) {
+    if (email && email.length >= 5) {
       // Get all clients and decrypt emails
       const allClients = await Client.find({ dltSts: 0 }).select('name email loc');
       
@@ -516,11 +520,16 @@ exports.getSuggestions = async (req, res) => {
       
       suggestions.emails = matchedClients;
 
-      // Check for exact match with valid email format
-      if (email.includes('@') && email.length >= 5) {
-        const exactMatch = clientsWithDecryptedEmails.find(client => client.email === email);
-        suggestions.existingEmail = !!exactMatch;
-        console.log('Email exact match found:', exactMatch); // Debug log
+      // 🔴 FIXED: Check for exact match with email (case-insensitive)
+      // Removed the condition that required email to include '@'
+      // Now it checks for exact match regardless of email format
+      const exactMatch = clientsWithDecryptedEmails.find(
+        client => client.email.toLowerCase() === email.toLowerCase()
+      );
+      suggestions.existingEmail = !!exactMatch;
+      
+      if (exactMatch) {
+        console.log('Email exact match found:', exactMatch.email);
       }
     }
 
@@ -642,5 +651,28 @@ exports.updateFeedback = async (req, res) => {
   } catch (err) {
     console.error('Error updating feedback:', err);
     res.status(500).json({ message: err.message || 'Failed to update feedback' });
+  }
+};
+
+
+exports.getBussTypeSuggestions = async (req, res) => {
+  try {
+    const { search } = req.query;
+    let query = { dltSts: 0 };
+    
+    if (search && search.length >= 2) {
+      // Case-insensitive search
+      query.name = { $regex: search, $options: 'i' };
+    }
+    
+    const bussTypes = await BussTyp.find(query)
+      .sort({ name: 1 })
+      .limit(10)
+      .select('name');
+    
+    res.json(bussTypes);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err.message);
   }
 };
