@@ -20,6 +20,7 @@ const clientSchema = new mongoose.Schema({
   src: String,
   gmap: String,
   type: String,
+  webst: String,
   dob: Date,
   weddingDay: Date,
   specialDay: Date,
@@ -27,6 +28,15 @@ const clientSchema = new mongoose.Schema({
   images: [
     {
       file: String,
+      uploadedOn: { type: Date, default: Date.now },
+    }
+  ],
+  documents: [ 
+    {
+      file: String,
+      originalName: String,
+      fileType: String,
+      fileSize: Number,
       uploadedOn: { type: Date, default: Date.now },
     }
   ],

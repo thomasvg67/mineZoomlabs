@@ -20,7 +20,7 @@ exports.getAllStats = async (req, res) => {
 
     const total = await MedicalStat.countDocuments(query);
     const stats = await MedicalStat.find(query)
-      .sort({ crtdOn: -1 })
+      .sort({ chkdOn: -1 })
       .skip(skip)
       .limit(PAGE_SIZE);
 

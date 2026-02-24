@@ -7,6 +7,7 @@ const medicalStatSchema = new mongoose.Schema({
   ph: { type: String },
   cnsultdBy: { type: String },
   mesrs: { type: String, required: true },
+  puls: { type: Number },
   triglyc: { type: Number },
   ldl: { type: Number },
   hdl: { type: Number },

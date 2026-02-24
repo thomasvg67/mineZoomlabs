@@ -84,6 +84,47 @@ async function uploadImageToCpanel(file, remoteFolder = '/mine/uplds/imgs') {
   }
 }
 
+// Rename and modify the upload function to handle any file type
+async function uploadFileToCpanel(file, remoteFolder = 'mine/uplds/documents') {
+  const client = new ftp.Client(30000);
+  client.ftp.verbose = true;
+  
+  try {
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_SIZE) {
+      throw new Error(`File size exceeds 5MB limit`);
+    }
+
+    await client.access({
+      host: process.env.FTP_HOST,
+      user: process.env.FTP_USER,
+      password: process.env.FTP_PASS,
+      secure: false
+    });
+
+    console.log('FTP Connected successfully');
+    
+    await client.ensureDir(remoteFolder);
+
+    const ext = path.extname(file.originalname);
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`;
+
+    const tempDir = os.tmpdir();
+    const tempFilePath = path.join(tempDir, uniqueName);
+
+    // Save buffer temporarily
+    fs.writeFileSync(tempFilePath, file.buffer);
+
+    // Upload
+    await client.uploadFrom(tempFilePath, uniqueName);
+
+    // Return public URL
+    return `${FILES_BASE_URL}/uplds/documents/${encodeURIComponent(uniqueName)}`;
+  } finally {
+    client.close();
+  }
+}
+
 // async function uploadImageToLocal(file, subFolder = 'client/images') {
 //   if (!file || !file.buffer) return null;
 
@@ -109,6 +150,27 @@ async function uploadImageToCpanel(file, remoteFolder = '/mine/uplds/imgs') {
 //   return `/uploads/${subFolder}/${uniqueName}`;
 // }
 
+async function deleteFileFromCpanel(fileUrl, folder) {
+    const client = new ftp.Client();
+    try {
+        await client.access({
+            host: process.env.FTP_HOST,
+            user: process.env.FTP_USER,
+            password: process.env.FTP_PASS,
+            secure: false
+        });
+
+        const filename = decodeURIComponent(fileUrl.split('/').pop());
+        const filePath = `mine/uplds/${folder}/${filename}`;
+
+        await client.remove(filePath);
+        console.log(`Deleted file: ${filePath}`);
+    } catch (err) {
+        console.error("FTP delete failed:", err.message);
+    } finally {
+        client.close();
+    }
+}
 
 function getISTDayRange() {
   const istStart = moment().tz("Asia/Kolkata").startOf("day").toDate(); // Today 00:00 IST
@@ -131,35 +193,62 @@ exports.addClient = async (req, res) => {
   try {
     const ip = req.ip;
     const userId = req.user?.uid || 'system';
-    const { fdback, startTime, endTime, subject, ...clientData } = req.body;
+    const { fdback, startTime, endTime, subject, documentCount, imageCount, ...clientData } = req.body;
 
     clientData.cntry = clientData.cntry ? Number(clientData.cntry) : null;
-clientData.state = clientData.state ? Number(clientData.state) : null;
-clientData.city  = clientData.city  ? Number(clientData.city)  : null;
-
+    clientData.state = clientData.state ? Number(clientData.state) : null;
+    clientData.city = clientData.city ? Number(clientData.city) : null;
 
     if (clientData.email) clientData.email = encrypt(clientData.email);
     if (clientData.ph) clientData.ph = encrypt(clientData.ph);
-    if (clientData.cntry) clientData.cntry = Number(clientData.cntry);
-if (clientData.state) clientData.state = Number(clientData.state);
-if (clientData.city) clientData.city = Number(clientData.city);
 
-      if (req.file) {
-      const audioUrl = await uploadAudioToCpanel(req.file);
+    // Initialize arrays
+    clientData.images = [];
+    clientData.documents = [];
+    clientData.audio = [];
+
+    // Handle audio file
+    const audioFile = req.files?.find(file => file.fieldname === 'audioFile');
+    if (audioFile) {
+      const audioUrl = await uploadAudioToCpanel(audioFile);
       clientData.audio = [{ file: audioUrl, uploadedOn: new Date() }];
     }
 
-    clientData.images = [];
-    if (req.files?.imageFile) {
-      // Handle single image file
-      const imageUrl = await uploadImageToCpanel(req.files.imageFile[0]);
-      // const imageUrl = await uploadImageToLocal(req.files.imageFile[0]);
-      clientData.images.push({
-        file: imageUrl,
-        uploadedOn: new Date(),
-        uploadedBy: userId,
-        uploadIp: ip
-      });
+    // Handle image files (multiple)
+    if (imageCount) {
+      const count = parseInt(imageCount);
+      for (let i = 0; i < count; i++) {
+        const imageFile = req.files?.find(file => file.fieldname === `imageFile${i}`);
+        if (imageFile) {
+          const imageUrl = await uploadImageToCpanel(imageFile);
+          clientData.images.push({
+            file: imageUrl,
+            uploadedOn: new Date(),
+            uploadedBy: userId,
+            uploadIp: ip
+          });
+        }
+      }
+    }
+
+    // Handle document files (multiple)
+    if (documentCount) {
+      const count = parseInt(documentCount);
+      for (let i = 0; i < count; i++) {
+        const docFile = req.files?.find(file => file.fieldname === `documentFile${i}`);
+        if (docFile) {
+          const fileUrl = await uploadFileToCpanel(docFile);
+          clientData.documents.push({
+            file: fileUrl,
+            originalName: docFile.originalname,
+            fileType: docFile.mimetype,
+            fileSize: docFile.size,
+            uploadedOn: new Date(),
+            uploadedBy: userId,
+            uploadIp: ip
+          });
+        }
+      }
     }
 
     const client = new Client({
@@ -218,7 +307,7 @@ if (clientData.city) clientData.city = Number(clientData.city);
 
     res.json(responseClient);
   } catch (err) {
-    console.error(err);
+    console.error('Add Client Error:', err);
     res.status(500).send(err.message);
   }
 };
@@ -255,9 +344,9 @@ exports.getAllClients = async (req, res) => {
     if (search.trim() !== "") {
       query.$or = [
         { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { ph: { $regex: search, $options: "i" } },
-        { loc: { $regex: search, $options: "i" } }
+        // { email: { $regex: search, $options: "i" } },
+        // { ph: { $regex: search, $options: "i" } },
+        // { loc: { $regex: search, $options: "i" } }
       ];
     }
 
@@ -308,19 +397,11 @@ exports.editClient = async (req, res) => {
     console.log('=== Edit Client Request ===');
     console.log('Request Body:', req.body);
     console.log('Files:', req.files);
-    console.log('Image File exists:', !!req.files?.imageFile?.[0]);
 
-    if (req.files?.imageFile?.[0]) {
-      console.log('Image File details:', {
-        originalname: req.files.imageFile[0].originalname,
-        size: req.files.imageFile[0].size,
-        mimetype: req.files.imageFile[0].mimetype
-      });
-    }
     const ip = req.ip;
     const userId = req.user?.uid || 'system';
-    const { fdback, startTime, endTime, subject,existingImages, ...clientData } = req.body;
-    
+    const { fdback, startTime, endTime, subject, existingImages, existingDocuments, 
+            documentCount, imageCount, ...clientData } = req.body;
 
     if (clientData.email) clientData.email = encrypt(clientData.email);
     if (clientData.ph) clientData.ph = encrypt(clientData.ph);
@@ -339,13 +420,52 @@ exports.editClient = async (req, res) => {
     const pushData = {};
 
     if (fdback) pushData.fdback = { content: fdback, crtdOn: new Date(), crtdBy: userId, crtdIp: ip };
-    if (req.files?.audioFile?.[0]) {
-      const audioUrl = await uploadAudioToCpanel(req.files.audioFile[0]);
+    
+    // Handle audio file
+    const audioFile = req.files?.find(file => file.fieldname === 'audioFile');
+    if (audioFile) {
+      const audioUrl = await uploadAudioToCpanel(audioFile);
       pushData.audio = { file: audioUrl, uploadedOn: new Date() };
     }
 
+    // Handle deleted files
+    if (req.body.deletedImages) {
+      let deletedImgs = [];
+      try {
+        deletedImgs = JSON.parse(req.body.deletedImages);
+      } catch (e) {
+        console.error("Invalid deletedImages JSON");
+      }
+      for (const img of deletedImgs) {
+        await deleteFileFromCpanel(img.file, 'imgs');
+      }
+    }
 
-    // If existingImages is provided (from frontend), parse it and update
+    if (req.body.deletedDocuments) {
+      let deletedDocs = [];
+      try {
+        deletedDocs = JSON.parse(req.body.deletedDocuments);
+      } catch (e) {
+        console.error("Invalid deletedDocuments JSON");
+      }
+      for (const doc of deletedDocs) {
+        await deleteFileFromCpanel(doc.file, 'documents');
+      }
+    }
+
+    if (req.body.deletedAudios) {
+      let deletedAudios = [];
+      try {
+        deletedAudios = JSON.parse(req.body.deletedAudios);
+      } catch (e) {
+        console.error("Invalid deletedAudios JSON");
+      }
+      for (const audio of deletedAudios) {
+        await deleteFileFromCpanel(audio.file, 'audios');
+      }
+    }
+
+    // Parse existing files
     let existingImagesArray = [];
     if (existingImages) {
       try {
@@ -355,30 +475,60 @@ exports.editClient = async (req, res) => {
       }
     }
 
-    // Get the current client to preserve existing images
+    let existingDocumentsArray = [];
+    if (existingDocuments) {
+      try {
+        existingDocumentsArray = JSON.parse(existingDocuments);
+      } catch (err) {
+        console.error('Error parsing existingDocuments:', err);
+      }
+    }
+
+    // Get the current client
     const currentClient = await Client.findById(req.params.id);
-    let currentImages = currentClient.images || [];
+    let currentImages = existingImagesArray.length > 0 ? existingImagesArray : (currentClient.images || []);
+    let currentDocuments = existingDocumentsArray.length > 0 ? existingDocumentsArray : (currentClient.documents || []);
 
-    // If we have existing images from frontend, use those
-    if (existingImagesArray.length > 0) {
-      currentImages = existingImagesArray;
-      console.log('Parsed existing images:', currentImages.length);
+    // Add new images
+    if (imageCount) {
+      const count = parseInt(imageCount);
+      for (let i = 0; i < count; i++) {
+        const imageFile = req.files?.find(file => file.fieldname === `imageFile${i}`);
+        if (imageFile) {
+          const imageUrl = await uploadImageToCpanel(imageFile);
+          currentImages.push({
+            file: imageUrl,
+            uploadedOn: new Date(),
+            uploadedBy: userId,
+            uploadIp: ip
+          });
+        }
+      }
     }
 
-    // Add new image if uploaded
-    if (req.files?.imageFile?.[0]) {
-      const imageUrl = await uploadImageToCpanel(req.files.imageFile[0]);
-      // const imageUrl = await uploadImageToLocal(req.files.imageFile[0]);
-      currentImages.push({
-        file: imageUrl,
-        uploadedOn: new Date(),
-        uploadedBy: userId,
-        uploadIp: ip
-      });
+    // Add new documents
+    if (documentCount) {
+      const count = parseInt(documentCount);
+      for (let i = 0; i < count; i++) {
+        const docFile = req.files?.find(file => file.fieldname === `documentFile${i}`);
+        if (docFile) {
+          const fileUrl = await uploadFileToCpanel(docFile);
+          currentDocuments.push({
+            file: fileUrl,
+            originalName: docFile.originalname,
+            fileType: docFile.mimetype,
+            fileSize: docFile.size,
+            uploadedOn: new Date(),
+            uploadedBy: userId,
+            uploadIp: ip
+          });
+        }
+      }
     }
 
-    // Update the images array
+    // Update the arrays
     updateData.images = currentImages;
+    updateData.documents = currentDocuments;
 
     const updated = await Client.findByIdAndUpdate(
       req.params.id,
@@ -407,7 +557,6 @@ exports.editClient = async (req, res) => {
         { upsert: true }
       );
 
-      // Mirror to TdyAlert if today's alert
       await TdyAlert.deleteMany({ clientId: req.params.id });
       if (nxtAlrtDate >= startOfToday && nxtAlrtDate <= endOfToday) {
         await TdyAlert.create({

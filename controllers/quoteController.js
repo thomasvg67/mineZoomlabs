@@ -21,7 +21,8 @@ exports.getAllQuotes = async (req, res) => {
 
     const total = await Quote.countDocuments(query);
     const quotes = await Quote.find(query)
-      .sort({ crtdOn: -1 })
+      // .sort({ crtdOn: -1 })
+      .sort({ isFavourite: -1, crtdOn: -1 })
       .skip(skip)
       .limit(PAGE_SIZE);
 
@@ -37,11 +38,19 @@ exports.addQuote = async (req, res) => {
     const userId = req.user?.uId || 'system';
     const ip = req.ip;
 
+    if (req.body.isFavourite) {
+      const favCount = await Quote.countDocuments({ isFavourite: true, dltSts: false });
+      if (favCount >= 12) {
+        return res.status(400).json({ message: 'Maximum 12 favourites allowed' });
+      }
+    }
+
     const newQuote = new Quote({
       subCategory: req.body.subCategory,
       writtenBy: req.body.writtenBy,
       source: req.body.source || '',
       quote: req.body.quote || '',
+      isFavourite: req.body.isFavourite || false,
       sts: req.body.sts ?? true,
       crtdBy: userId,
       crtdIp: ip,
@@ -60,6 +69,18 @@ exports.editQuote = async (req, res) => {
     const userId = req.user?.uId || 'system';
     const ip = req.ip;
 
+    if (req.body.isFavourite) {
+      const favCount = await Quote.countDocuments({
+        isFavourite: true,
+        dltSts: false,
+        _id: { $ne: req.params.id }
+      });
+
+      if (favCount >= 12) {
+        return res.status(400).json({ message: 'Maximum 12 favourites allowed' });
+      }
+    }
+
     const updated = await Quote.findByIdAndUpdate(
       req.params.id,
       {
@@ -68,6 +89,7 @@ exports.editQuote = async (req, res) => {
           writtenBy: req.body.writtenBy,
           source: req.body.source,
           quote: req.body.quote,
+          isFavourite: req.body.isFavourite,
           sts: req.body.sts,
           updtBy: userId,
           updtIp: ip,
