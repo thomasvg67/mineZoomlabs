@@ -1,4 +1,41 @@
 const Quote = require('../models/Quote');
+const ftp = require('basic-ftp');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const FILES_BASE_URL = process.env.FILES_BASE_URL;
+
+async function uploadImageToCpanel(file, remoteFolder = '/mine/uplds/quts') {
+  const client = new ftp.Client();
+  try {
+
+    await client.access({
+      host: process.env.FTP_HOST,
+      user: process.env.FTP_USER,
+      password: process.env.FTP_PASS,
+      secure: false
+    });
+
+    await client.ensureDir(remoteFolder);
+
+    const ext = path.extname(file.originalname);
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`;
+
+    const tempFile = path.join(os.tmpdir(), uniqueName);
+    fs.writeFileSync(tempFile, file.buffer);
+
+    await client.uploadFrom(tempFile, `${remoteFolder}/${uniqueName}`);
+
+    fs.unlinkSync(tempFile);
+
+    return `${FILES_BASE_URL}/uplds/quts/${encodeURIComponent(uniqueName)}`;
+
+  } finally {
+    client.close();
+  }
+}
 
 exports.getAllQuotes = async (req, res) => {
   try {
@@ -38,6 +75,12 @@ exports.addQuote = async (req, res) => {
     const userId = req.user?.uId || 'system';
     const ip = req.ip;
 
+    let imageUrl = "";
+
+    if (req.file) {
+      imageUrl = await uploadImageToCpanel(req.file);
+    }
+
     if (req.body.isFavourite) {
       const favCount = await Quote.countDocuments({ isFavourite: true, dltSts: false });
       if (favCount >= 12) {
@@ -50,6 +93,7 @@ exports.addQuote = async (req, res) => {
       writtenBy: req.body.writtenBy,
       source: req.body.source || '',
       quote: req.body.quote || '',
+      image: imageUrl,
       isFavourite: req.body.isFavourite || false,
       sts: req.body.sts ?? true,
       crtdBy: userId,
@@ -81,6 +125,12 @@ exports.editQuote = async (req, res) => {
       }
     }
 
+    let imageUrl = req.body.image || "";
+
+    if (req.file) {
+      imageUrl = await uploadImageToCpanel(req.file);
+    }
+
     const updated = await Quote.findByIdAndUpdate(
       req.params.id,
       {
@@ -89,6 +139,7 @@ exports.editQuote = async (req, res) => {
           writtenBy: req.body.writtenBy,
           source: req.body.source,
           quote: req.body.quote,
+          image: imageUrl,
           isFavourite: req.body.isFavourite,
           sts: req.body.sts,
           updtBy: userId,

@@ -5,6 +5,7 @@ const quoteSchema = new mongoose.Schema({
   writtenBy: { type: String },
   source: String,
   quote: { type: String, required: true },
+  image: { type: String },
   isFavourite: { type: Boolean, default: false },
   sts: { type: Boolean, default: true },
 

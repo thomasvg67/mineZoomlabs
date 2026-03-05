@@ -41,7 +41,7 @@ exports.addNote = async (req, res) => {
 // Get all notes (excluding deleted)
 exports.getAllNotes = async (req, res) => {
   try {
-    const notes = await Note.find({ dltSts: '0' }).sort({ crtdOn: -1 });
+    const notes = await Note.find({ dltSts: '0' }).collation({ locale: 'en', strength: 2 }).sort({ title: 1 });
     res.json(notes);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch notes' });
