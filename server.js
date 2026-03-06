@@ -102,6 +102,8 @@ app.use('/api/states', require('./routes/stateRoutes'));
 app.use('/api/cities', require('./routes/cityRoutes'));
 app.use('/api/buss-types', require('./routes/bussTypRoutes'));
 app.use('/api/email-template', require('./routes/emailTemplateRoutes'));
+app.use('/api/blog', require('./routes/blogRoutes'));
+app.use('/api/target', require('./routes/targetRoutes'));
 
 // Start server
 // app.listen(PORT, () => {
