@@ -1,5 +1,42 @@
 const Note = require('../models/Note');
 
+const ftp = require('basic-ftp');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+const FILES_BASE_URL = process.env.FILES_BASE_URL;
+
+async function uploadImageToCpanel(file, remoteFolder = '/mine/uplds/notes') {
+  const client = new ftp.Client();
+  try {
+    await client.access({
+      host: process.env.FTP_HOST,
+      user: process.env.FTP_USER,
+      password: process.env.FTP_PASS,
+      secure: false
+    });
+
+    await client.ensureDir(remoteFolder);
+
+    const ext = path.extname(file.originalname);
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`;
+
+    const tempFile = path.join(os.tmpdir(), uniqueName);
+    fs.writeFileSync(tempFile, file.buffer);
+
+    await client.uploadFrom(tempFile, `${remoteFolder}/${uniqueName}`);
+
+    fs.unlinkSync(tempFile);
+
+    return `${FILES_BASE_URL}/uplds/notes/${encodeURIComponent(uniqueName)}`;
+
+  } finally {
+    client.close();
+  }
+}
+
+
 // Create a new note
 exports.addNote = async (req, res) => {
   try {
@@ -7,9 +44,16 @@ exports.addNote = async (req, res) => {
     const ip = req.ip;
     const userId = req.user?.uId || 'system';
 
+    let imageUrl = "";
+
+    if (req.file) {
+      imageUrl = await uploadImageToCpanel(req.file);
+    }
+
     const newNote = new Note({
       title,
       desc,
+      image: imageUrl,
       isFav: false,
       tag,
       crtdOn: new Date(),
@@ -130,15 +174,22 @@ exports.updateNote = async (req, res) => {
       });
     }
 
+    const updateData = {
+      title,
+      desc,
+      updtOn: new Date(),
+      updtBy: userId,
+      updtIp: ip,
+    };
+
+    // Handle image upload if new file is provided
+    if (req.file) {
+      updateData.image = await uploadImageToCpanel(req.file);
+    }
+
     const updatedNote = await Note.findByIdAndUpdate(
       noteId,
-      {
-        title,
-        desc,
-        updtOn: new Date(),
-        updtBy: userId,
-        updtIp: ip,
-      },
+      updateData,
       { new: true } // return updated doc
     );
 

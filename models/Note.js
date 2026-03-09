@@ -6,6 +6,7 @@ const NoteSchema = new mongoose.Schema({
   cat: {type: String, default: "notes"},
   title: { type: String, required: true },
   desc: { type: String, required: true },
+  image: { type: String },
   tag: { type: String },
   isFav: { type: Boolean, default: false },
   crtdOn: { type: Date, default: Date.now },
