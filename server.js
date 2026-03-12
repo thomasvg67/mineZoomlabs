@@ -106,6 +106,7 @@ app.use('/api/blog', require('./routes/blogRoutes'));
 app.use('/api/target', require('./routes/targetRoutes'));
 app.use('/api/smm', require('./routes/smmRoutes'));
 app.use('/api/notesHs', require('./routes/notesHsRoutes'));
+app.use('/api/noteHsTag', require('./routes/noteHsTagRoutes'));
 
 // Start server
 // app.listen(PORT, () => {
