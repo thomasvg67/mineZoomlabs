@@ -1,0 +1,44 @@
+const mongoose = require('mongoose');
+const { Counter } = require('./Counter');
+
+const NoteHsSchema = new mongoose.Schema({
+  nId: { type: String, unique: true }, // 4-digit string like "0001"
+  cat: {type: String, default: "notesHs"},
+  title: { type: String, required: true },
+  desc: { type: String, required: true },
+  image: { type: String },
+  tag: { type: String },
+  isFav: { type: Boolean, default: false },
+  crtdOn: { type: Date, default: Date.now },
+  crtdBy: { type: String },
+  crtdIp: { type: String },
+  updtOn: { type: Date },
+  updtBy: { type: String },
+  updtIp: { type: String },
+  dltOn: { type: Date },
+  dltBy: { type: String },
+  dltIp: { type: String },
+  dltSts: { type: String, default: 0 },
+  nSts: { type: String, default: 3 },
+});
+
+// 👇 This hook generates the 4-digit noteId
+NoteHsSchema.pre('save', async function (next) {
+  if (this.isNew) {
+    try {
+      const counter = await Counter.findOneAndUpdate(
+        { id: 'nId' },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
+      this.nId = counter.seq.toString().padStart(4, '0');
+      next();
+    } catch (err) {
+      next(err);
+    }
+  } else {
+    next();
+  }
+});
+
+module.exports = mongoose.model('NoteHs', NoteHsSchema);

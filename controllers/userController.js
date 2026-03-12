@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const transporter = require('../middleware/mailer'); 
+const transporter = require('../middleware/mailer');
 const { getNextUserId } = require('../models/Counter');
 const { encrypt, decrypt } = require('../routes/encrypt');
 const fs = require("fs");
@@ -130,22 +130,47 @@ exports.login = async (req, res) => {
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
     const isMatch = await bcrypt.compare(password, user.pwd);
-if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
-if (user.sts !== 1) {
-  return res.status(403).json({ message: 'Account not verified. Please check your email.' });
-}
+    if (user.sts !== 1) {
+      return res.status(403).json({ message: 'Account not verified. Please check your email.' });
+    }
 
 
     const token = jwt.sign(
-      { id: user._id,uId: user.uId, uname: user.uname, role: user.role },
+      { id: user._id, uId: user.uId, uname: user.uname, role: user.role },
       JWT_SECRET,
       { expiresIn: '3h' }
+      // { expiresIn: '1m' }
     );
 
-    res.json({ token});
+    res.json({ token });
   } catch (err) {
     res.status(500).send('Server error');
+  }
+};
+
+exports.unlock = async (req, res) => {
+  const { uname, password } = req.body;
+
+  try {
+    const user = await User.findOne({ uname });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.pwd);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // ✅ only verify password, do NOT create new token
+    res.json({ success: true });
+
+  } catch (err) {
+    res.status(500).send("Server error");
   }
 };
 
@@ -180,7 +205,7 @@ exports.getProfile = async (req, res) => {
       socials: user.socials,
       skills: user.skills || [],
       education: Array.isArray(user.education) ? user.education : [],
-workExp: Array.isArray(user.workExp) ? user.workExp : [],
+      workExp: Array.isArray(user.workExp) ? user.workExp : [],
 
       biodata: user.biodata
     });
@@ -214,12 +239,12 @@ exports.updateProfile = async (req, res) => {
     if (country?.trim()) updatePayload.country = country.trim();
     if (address?.trim()) updatePayload.address = address.trim();
     if (website?.trim()) updatePayload.website = website.trim();
-  if (parsedEducation.some(e => e.college?.trim())) {
-  updatePayload.education = parsedEducation;
-}
-if (parsedWorkExp.some(e => e.company?.trim())) {
-  updatePayload.workExp = parsedWorkExp;
-}
+    if (parsedEducation.some(e => e.college?.trim())) {
+      updatePayload.education = parsedEducation;
+    }
+    if (parsedWorkExp.some(e => e.company?.trim())) {
+      updatePayload.workExp = parsedWorkExp;
+    }
 
     if (Object.keys(parsedSocials).length > 0) updatePayload.socials = [parsedSocials];
     if (parsedSkills.length > 0) updatePayload.skills = parsedSkills;
@@ -284,19 +309,19 @@ exports.getPaginatedUsers = async (req, res) => {
     const sortDir = req.query.sortDir === 'asc' ? 1 : -1;
 
     const query = search
-     ? {
-      $and: [
-        { dltSts: { $ne: '1' } },
-        {
-          $or: [
-            { name: { $regex: search, $options: 'i' } },
-            { uname: { $regex: search, $options: 'i' } },
-            { email: { $regex: encrypt(search), $options: 'i' } }
-          ]
-        }
-      ]
-    }
-  : { dltSts: { $ne: '1' } };
+      ? {
+        $and: [
+          { dltSts: { $ne: '1' } },
+          {
+            $or: [
+              { name: { $regex: search, $options: 'i' } },
+              { uname: { $regex: search, $options: 'i' } },
+              { email: { $regex: encrypt(search), $options: 'i' } }
+            ]
+          }
+        ]
+      }
+      : { dltSts: { $ne: '1' } };
 
     const recordsTotal = await User.countDocuments({});
     const recordsFiltered = await User.countDocuments(query);
@@ -347,7 +372,7 @@ exports.getUserById = async (req, res) => {
 exports.updateUserById = async (req, res) => {
   try {
     const {
-      name, job, dob,role, bio, email, ph, loc, country,
+      name, job, dob, role, bio, email, ph, loc, country,
       address, website, education, workExp, socials, skills
     } = req.body;
 
@@ -368,12 +393,12 @@ exports.updateUserById = async (req, res) => {
     if (country?.trim()) updatePayload.country = country.trim();
     if (address?.trim()) updatePayload.address = address.trim();
     if (website?.trim()) updatePayload.website = website.trim();
-   if (parsedEducation.some(e => e.college?.trim())) {
-  updatePayload.education = parsedEducation;
-}
-if (parsedWorkExp.some(e => e.company?.trim())) {
-  updatePayload.workExp = parsedWorkExp;
-}
+    if (parsedEducation.some(e => e.college?.trim())) {
+      updatePayload.education = parsedEducation;
+    }
+    if (parsedWorkExp.some(e => e.company?.trim())) {
+      updatePayload.workExp = parsedWorkExp;
+    }
 
     if (Object.keys(parsedSocials).length > 0) updatePayload.socials = [parsedSocials];
     if (parsedSkills.length > 0) updatePayload.skills = parsedSkills;

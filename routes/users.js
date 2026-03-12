@@ -9,6 +9,7 @@ const upload = require('../middleware/multerConfig');
 router.get('/create-admin', userController.createAdmin);
 router.post('/create', verifyToken, userController.createUser);
 router.post('/login', userController.login);
+router.post('/unlock', userController.unlock);
 router.get('/me', verifyToken, upload.fields([
   { name: "image", maxCount: 1 },
   { name: "biodata", maxCount: 1 }
