@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const tagController = require('../controllers/NoteHsTagController');
+const tagController = require('../controllers/noteHsTagController');
 const { verifyToken } = require('../middleware/verifyToken');
 
 router.post('/add', verifyToken, tagController.addTag);
