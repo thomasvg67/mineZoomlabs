@@ -275,14 +275,15 @@ exports.updateProfile = async (req, res) => {
 };
 
 exports.changePassword = async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
+  const { newPassword } = req.body;
 
   try {
     const user = await User.findOne({ uname: req.user.uname });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const isMatch = await bcrypt.compare(oldPassword, user.pwd);
-    if (!isMatch) return res.status(401).json({ message: 'Incorrect old password' });
+    if (!newPassword) {
+      return res.status(400).json({ message: 'New password is required' });
+    }
 
     const hashedPwd = await bcrypt.hash(newPassword, 10);
     user.pwd = hashedPwd;
