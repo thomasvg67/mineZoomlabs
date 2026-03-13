@@ -5,6 +5,7 @@ const { verifyToken } = require('../middleware/verifyToken');
 
 router.post('/add', verifyToken, timelineController.addTimeline);
 router.get('/', verifyToken, timelineController.getAllTimelines);
+router.get('/general', verifyToken, timelineController.getGeneralTimelines);
 router.put('/tag/:id', verifyToken, timelineController.updateTag);
 router.put('/fav/:id', verifyToken, timelineController.updateFavourite);
 router.delete('/:id', verifyToken, timelineController.deleteTimeline);

@@ -8,6 +8,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post('/add', verifyToken, upload.single("image"), noteHsController.addNote);
 router.get('/', verifyToken, noteHsController.getAllNotes);
+router.get('/general', verifyToken, noteHsController.getGeneralNotes);
 router.put('/tag/:id', verifyToken, noteHsController.updateTag);
 router.put('/fav/:id', verifyToken, noteHsController.updateFavourite);
 router.delete('/:id', verifyToken, noteHsController.deleteNote);

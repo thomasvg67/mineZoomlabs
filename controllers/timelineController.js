@@ -43,6 +43,23 @@ exports.getAllTimelines = async (req, res) => {
   }
 };
 
+// Get timelines without tags (General)
+exports.getGeneralTimelines = async (req, res) => {
+  try {
+    const timelines = await Timeline.find({ 
+      dltSts: '0',
+      $or: [
+        { tag: null },
+        { tag: '' },
+        { tag: { $exists: false } }
+      ]
+    }).sort({ crtdOn: -1 });
+    res.json(timelines);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch general timelines' });
+  }
+};
+
 // Update tag
 exports.updateTag = async (req, res) => {
   try {

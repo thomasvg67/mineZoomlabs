@@ -1,46 +1,40 @@
 const Todos = require('../models/PrsTodos');
 
-// Get all Todos
+// Get all Todos for Inbox (today or future)
 exports.getTodosList = async (req, res) => {
   try {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const todoslist = await Todos.find( {
-      start_date: { $gte: todayStart, $lt: todayEnd },
+    const todoslist = await Todos.find({
+      start_date: { $gte: today }, // Greater than or equal to today
       dlt_sts: 1,
       important: 0,
       task_done: 0
-    });
+    }).sort({ start_date: 1 }); // Sort by date ascending
+    
     res.json(todoslist);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch todos list' });
   }
 };
 
+// Get Pending Todos (past dates)
 exports.getPendingTodosList = async (req, res) => {
   try {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const todoslist = await Todos.find({
-      $or: [
-        { start_date: { $lt: todayStart } },
-        { start_date: { $gte: todayEnd } }
-      ],
+      start_date: { $lt: today }, // Less than today (past dates)
       dlt_sts: 1,
       important: 0,
       task_done: 0
-    });
+    }).sort({ start_date: 1 }); // Sort by date ascending
+    
     res.json(todoslist);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch todos list' });
+    res.status(500).json({ error: 'Failed to fetch pending todos list' });
   }
 };
 
