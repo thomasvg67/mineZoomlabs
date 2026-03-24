@@ -299,10 +299,16 @@ exports.addClient = async (req, res) => {
       }
     }
 
+    // Fetch alert data to include startTime/endTime in response
+    const alert = await Alert.findOne({ clientId: savedClient._id, dltSts: 0 }).sort({ crtdOn: -1 });
+
     const responseClient = {
       ...savedClient.toObject(),
       ph: safeDecrypt(savedClient.ph),
-      email: safeDecrypt(savedClient.email)
+      email: safeDecrypt(savedClient.email),
+      startTime: alert ? alert.startTime : null,
+      endTime: alert ? alert.endTime : null,
+      subject: alert ? alert.subject : null,
     };
 
     res.json(responseClient);
@@ -572,10 +578,16 @@ exports.editClient = async (req, res) => {
       }
     }
 
+    // Fetch alert data to include startTime/endTime in response
+    const alert = await Alert.findOne({ clientId: updated._id, dltSts: 0 }).sort({ crtdOn: -1 });
+
     const responseClient = {
       ...updated.toObject(),
       ph: safeDecrypt(updated.ph),
-      email: safeDecrypt(updated.email)
+      email: safeDecrypt(updated.email),
+      startTime: alert ? alert.startTime : null,
+      endTime: alert ? alert.endTime : null,
+      subject: alert ? alert.subject : null,
     };
 
     res.json(responseClient);
