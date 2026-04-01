@@ -348,10 +348,11 @@ exports.getAllClients = async (req, res) => {
 
     const search = req.query.search || "";
     if (search.trim() !== "") {
+      const encryptedPhone = encrypt(search);
       query.$or = [
         { name: { $regex: search, $options: "i" } },
         // { email: { $regex: search, $options: "i" } },
-        // { ph: { $regex: search, $options: "i" } },
+        { ph: { $regex: encryptedPhone, $options: "i" } },
         // { loc: { $regex: search, $options: "i" } }
       ];
     }
